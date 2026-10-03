@@ -293,13 +293,14 @@ async function startWhatsApp() {
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", ({ connection, qr, lastDisconnect }) => {
+  sock.ev.on("connection.update", ({ connection, qr, lastDisconnect: disconnect }) => {
     lastConnection = connection === "open" ? new Date().toISOString() : lastConnection;
     lastDisconnect = connection === "close" ? new Date().toISOString() : lastDisconnect;
     connected = connection === "open";
 
     if (qr) {
       console.clear();
+      console.log("\n📱 Scan this QR code with WhatsApp:\n");
       qrcode.generate(qr, {
         small: true
       });
@@ -313,10 +314,13 @@ async function startWhatsApp() {
       logger.warn("❌ WhatsApp connection closed");
 
       const shouldReconnect =
-        lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+        disconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
 
       if (shouldReconnect) {
+        logger.info("🔄 Reconnecting...");
         startWhatsApp();
+      } else {
+        logger.warn("🚪 Logged out — not reconnecting. Delete the auth/ folder and restart to re-pair.");
       }
     }
   });
